@@ -1,0 +1,106 @@
+version: '3.2'
+
+services:
+
+  broker:
+    container_name: "rabbit"
+    image: rabbit_image
+    restart: always
+    ports:
+      - 1883:1883
+      - 5672:5672
+      - 15672:15672
+    build:
+      context: .
+      dockerfile: rabbitmq/Dockerfile
+    environment:
+            - "RABBITMQ_DEFAULT_PASS=pass"
+            - "RABBITMQ_DEFAULT_USER=user"
+    networks:
+      default:
+        aliases:
+          - rabbit
+
+  #----------------------------------------------
+
+  database:
+    container_name: "influx"
+    image: influx_image
+    restart: always
+    ports:
+      - 8086:8086
+    env_file:
+      - influx/setup-influx.env
+    build:
+      context: .
+      dockerfile: influx/Dockerfile
+    networks:
+      default:
+        aliases:
+          - influx
+          
+  #----------------------------------------------
+
+  comunicacion:
+    container_name: "telegraf"
+    image: telegraf_image
+    restart: always
+  
+    build:
+      context: .
+      dockerfile: telegraf/Dockerfile
+    volumes:
+      - ./telegraf/rabbit.conf:/etc/telegraf/telegraf.conf
+    networks:
+      default:
+        aliases:
+          - telegraf
+    depends_on:
+      - database
+      - broker
+    links: 
+      - database
+  #----------------------------------------------
+
+  visualizador:
+    container_name: grafana
+    image: grafana-image
+    restart: always
+    ports:
+      - "3000:3000"
+    build:
+      context: .
+      dockerfile: grafana/Dockerfile
+    depends_on:
+      - database
+
+  #----------------------------------------------
+
+  analica:
+    container_name: analitica
+    image: analitica-image
+    restart: always
+    build:
+      context: .
+      dockerfile: analitica/Dockerfile
+    depends_on:
+      - database
+  
+  #----------------------------------------------
+  
+  # cliente:
+  #  container_name: client
+  #  image: client-image
+  #  restart: always
+  #  build:
+  #    context: .
+  #    dockerfile: client/Dockerfile
+  #  links: 
+  #    - database
+   
+  
+  
+          
+
+
+    
